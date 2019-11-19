@@ -50,15 +50,22 @@ class AddStockDataToCollection
     public function execute(Collection $collection, bool $isFilterInStock, int $stockId)
     {
         if ($stockId === $this->defaultStockProvider->getId()) {
-            $isSalableColumnName = 'stock_status';
+            $isSalableColumnName = 'is_salable';
             $resource = $collection->getResource();
             $collection->getSelect()
                 ->join(
                     ['stock_status_index' => $resource->getTable('cataloginventory_stock_status')],
                     sprintf('%s.entity_id = stock_status_index.product_id', Collection::MAIN_TABLE_ALIAS),
-                    [IndexStructure::IS_SALABLE => $isSalableColumnName]
+                    []
                 );
+            $subSelect = new \Zend_Db_Expr("(SELECT IF (stock_status_index.stock_status = 1, (stock_status_index.qty + IFNULL(SUM(inventory_reservation.quantity), 0) > 0), 0) as `is_salable`, `catalog_product_entity`.`sku` FROM `catalog_product_entity` INNER JOIN `cataloginventory_stock_status` AS `stock_status_index` ON `catalog_product_entity`.`entity_id` = `stock_status_index`.`product_id` LEFT JOIN `inventory_reservation` ON `catalog_product_entity`.`sku` = `inventory_reservation`.`sku` AND `inventory_reservation`.`stock_id` = 1 GROUP BY `catalog_product_entity`.`sku`)");
+            $collection->getSelect()->join(
+                ['reservations' => $subSelect],
+                'e.sku = reservations.sku',
+                '*'
+            );
         } else {
+            $isSalableColumnName = 'stock_status_index.' . IndexStructure::IS_SALABLE;
             $stockIndexTableName = $this->stockIndexTableNameResolver->execute($stockId);
             $resource = $collection->getResource();
             $collection->getSelect()->join(
@@ -66,7 +73,6 @@ class AddStockDataToCollection
                 sprintf('product.entity_id = %s.entity_id', Collection::MAIN_TABLE_ALIAS),
                 []
             );
-            $isSalableColumnName = IndexStructure::IS_SALABLE;
             $collection->getSelect()
                 ->join(
                     ['stock_status_index' => $stockIndexTableName],
@@ -76,8 +82,7 @@ class AddStockDataToCollection
         }
 
         if ($isFilterInStock) {
-            $collection->getSelect()
-                ->where('stock_status_index.' . $isSalableColumnName . ' = ?', 1);
+            $collection->getSelect()->where($isSalableColumnName . ' = ?', 1);
         }
     }
 }
