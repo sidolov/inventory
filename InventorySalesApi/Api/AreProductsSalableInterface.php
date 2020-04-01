@@ -12,14 +12,14 @@ namespace Magento\InventorySalesApi\Api;
  *
  * @api
  */
-interface AreProductsSalableForRequestedQtyInterface
+interface AreProductsSalableInterface
 {
     /**
      * Get whether products are salable in requested Qty for given set of SKUs in specified stock.
      *
-     * @param isProductSalableForReqestedQtyRequestInterface[] $skuRequests TODO: define new interface
+     * @param string[] $skus ['sku', ..., ...]
      * @param int $stockId
-     * @return isProductSalableForReqestedQtyResultInterface[] TODO: define new interface
+     * @return isProductSalableResultInterface[] TODO: define new interface
      */
-    public function execute(array $skuRequests, int $stockId) : array;
+    public function execute(array $skus, int $stockId) : array;
 }
