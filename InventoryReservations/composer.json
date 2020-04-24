@@ -18,5 +18,6 @@
         "psr-4": {
             "Magento\\InventoryReservations\\": ""
         }
-    }
+    },
+    "version": "1.0.7"
 }
